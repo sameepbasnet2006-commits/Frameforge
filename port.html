@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfólio | FrameForge</title>
+    
+    <!-- Import Montserrat & Lato -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
+    
+    <!-- Import GSAP & ScrollTrigger -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <style>
+        /* --- BRAND VARIABLES & BASE --- */
+        :root {
+            --bg-offwhite: #d0cfcf;
+            --brand-red: #d22026;
+            --brand-black: #2f2f2f;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        @media (pointer: fine) { * { cursor: none !important; } }
+
+        body {
+            background-color: var(--bg-offwhite);
+            color: var(--brand-black);
+            font-family: 'Lato', sans-serif;
+            overflow-x: hidden;
+            position: relative;
+            background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.05) 100%);
+        }
+
+        h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
+
+        /* --- BACKGROUND PARTICLES & TRANSITIONS --- */
+        #particleCanvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2; pointer-events: none; }
+        .bg-stripes-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; overflow: hidden; pointer-events: none; }
+        .bg-stripe { position: absolute; width: 300vw; left: -100vw; transform-origin: center; }
+        .bg-stripe.red-stripe { background-color: var(--brand-red); height: 60px; top: 40%; opacity: 0.15; animation: stripeMoveRed 18s linear infinite; }
+        .bg-stripe.black-stripe { background-color: var(--brand-black); height: 25px; top: 45%; opacity: 0.08; animation: stripeMoveBlack 25s linear infinite; }
+        @keyframes stripeMoveRed { 0% { transform: rotate(50deg) translateY(-20vh) translateX(100vw); } 100% { transform: rotate(50deg) translateY(-20vh) translateX(-100vw); } }
+        @keyframes stripeMoveBlack { 0% { transform: rotate(50deg) translateY(-30vh) translateX(100vw); } 100% { transform: rotate(50deg) translateY(-30vh) translateX(-100vw); } }
+
+        .wipe-layer { position: fixed; left: 0; width: 100%; height: 100vh; z-index: 9000; }
+        .wipe-black { background-color: var(--brand-black); top: 0; }
+        .wipe-red { background-color: var(--brand-red); top: 0; z-index: 9001; }
+
+        /* --- CUSTOM CURSOR & NAVBAR --- */
+        .cursor-wrapper { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 99999; display: none; }
+        @media (pointer: fine) { .cursor-wrapper { display: block; } }
+        .cursor-state { position: absolute; top: 0; left: 0; width: 45px; height: auto; transform: translate(-50%, -50%); transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .cursor-idle { opacity: 1; }
+        .cursor-hover { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+        .cursor-wrapper.hovering .cursor-idle { opacity: 0; }
+        .cursor-wrapper.hovering .cursor-hover { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+
+        .navbar-container { position: fixed; top: 30px; left: 50%; transform: translateX(-50%); z-index: 100; opacity: 0; }
+        .navbar { background-color: var(--brand-black); padding: 8px; border-radius: 50px; display: flex; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.15); max-width: 66px; overflow: hidden; transition: max-width 0.6s cubic-bezier(0.8, 0, 0.2, 1); }
+        .navbar.is-open { max-width: 500px; }
+        .nav-logo-box { background-color: var(--bg-offwhite); height: 50px; width: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; flex-shrink: 0; padding: 8px; transition: transform 0.5s ease, background-color 0.3s; }
+        .nav-logo-box:hover { background-color: white; }
+        .navbar.is-open .nav-logo-box { transform: rotate(360deg); }
+        .nav-logo-box img { width: 100%; height: 100%; object-fit: contain; }
+        .nav-links { display: flex; gap: 5px; padding-left: 15px; padding-right: 10px; opacity: 0; white-space: nowrap; pointer-events: none; transition: opacity 0.3s ease; }
+        .navbar.is-open .nav-links { opacity: 1; pointer-events: auto; transition: opacity 0.4s ease 0.3s; }
+        .nav-links a { text-decoration: none; color: var(--brand-black); background-color: var(--bg-offwhite); padding: 10px 20px; border-radius: 30px; font-size: 0.9rem; font-weight: 700; transition: all 0.3s ease; }
+        .nav-links a:hover { background-color: var(--brand-red); color: var(--bg-offwhite); }
+
+        /* --- PORTFOLIO HEADER --- */
+        .portfolio-header { padding: 150px 8% 50px 8%; text-align: center; position: relative; z-index: 10; }
+        .portfolio-header h1 { font-size: clamp(3rem, 6vw, 5.5rem); font-weight: 900; text-transform: uppercase; color: var(--brand-black); line-height: 1; margin-bottom: 20px; opacity: 0; }
+        .portfolio-header p { font-size: 1.2rem; max-width: 600px; margin: 0 auto; font-weight: 700; opacity: 0; }
+        .section-title { text-align: center; font-size: 2.5rem; text-transform: uppercase; letter-spacing: 2px; color: var(--brand-red); margin: 80px 0 40px 0; position: relative; z-index: 10; }
+
+        /* --- PORTFOLIO GRIDS --- */
+        .portfolio-container { padding: 0 8% 100px 8%; position: relative; z-index: 10; max-width: 1400px; margin: 0 auto; }
+        .posters-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 40px; margin-bottom: 100px; }
+        @media (max-width: 1100px) { .posters-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 600px) { .posters-grid { grid-template-columns: 1fr; } }
+        
+        .videos-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 40px; }
+
+        /* --- CARD STYLES --- */
+        .port-card { position: relative; border-radius: 15px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.2); background: var(--brand-black); opacity: 0; transform: translateY(100px); }
+        .poster-card { aspect-ratio: 2 / 3; cursor: none; } 
+        .video-card { aspect-ratio: 16 / 9; cursor: none; }
+
+        .port-media { width: 100%; height: 100%; object-fit: cover; filter: grayscale(40%) contrast(110%); transition: transform 0.6s cubic-bezier(0.19, 1, 0.22, 1), filter 0.6s; }
+        .port-card:hover .port-media { transform: scale(1.08); filter: grayscale(0%) contrast(100%); }
+
+        /* Overlay for Video Cards only */
+        .port-overlay { position: absolute; bottom: 0; left: 0; width: 100%; padding: 40px 20px 20px 20px; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%); color: white; transform: translateY(20px); opacity: 0; transition: all 0.4s ease; }
+        .video-card:hover .port-overlay { transform: translateY(0); opacity: 1; }
+        .port-title { font-size: 1.5rem; font-weight: 900; text-transform: uppercase; margin-bottom: 5px; }
+        .port-cat { font-family: 'Lato', sans-serif; font-size: 0.9rem; font-weight: 700; color: var(--brand-red); text-transform: uppercase; letter-spacing: 1px; }
+
+        .play-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); width: 80px; height: 80px; background: rgba(210, 32, 38, 0.9); border-radius: 50%; display: flex; justify-content: center; align-items: center; opacity: 0; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 2; pointer-events: none; }
+        .play-btn::after { content: ''; border-style: solid; border-width: 15px 0 15px 25px; border-color: transparent transparent transparent white; margin-left: 8px; }
+        .video-card:hover .play-btn { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+        /* --- 3D LIGHTBOX --- */
+        .lightbox {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(15, 15, 15, 0.95); backdrop-filter: blur(15px);
+            z-index: 99990; display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; perspective: 1200px;
+        }
+        .lightbox.active { pointer-events: auto; }
+        .lightbox-content { position: relative; transform-style: preserve-3d; max-width: 90vw; }
+        
+        /* Shared styling for expanded media */
+        #lightboxImg, #lightboxVid {
+            max-height: 80vh; max-width: 85vw; border-radius: 10px;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.1);
+            display: none; /* Managed by JS */
+        }
+
+        .lightbox-close { position: absolute; top: 30px; right: 40px; color: white; font-size: 1.2rem; font-family: 'Montserrat', sans-serif; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; opacity: 0.7; transition: opacity 0.3s; }
+        .lightbox-close:hover { opacity: 1; }
+
+        @media (max-width: 900px) { .videos-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+    <div class="wipe-layer wipe-black"></div>
+    <div class="wipe-layer wipe-red"></div>
+
+    <div class="bg-stripes-container">
+        <div class="bg-stripe red-stripe"></div>
+        <div class="bg-stripe black-stripe"></div>
+    </div>
+
+    <canvas id="particleCanvas"></canvas>
+
+    <div class="cursor-wrapper" id="customCursor">
+        <img src="b.png" alt="Idle Cursor" class="cursor-state cursor-idle" onerror="this.style.display='none'"> 
+        <img src="f.png" alt="Hover Cursor" class="cursor-state cursor-hover" onerror="this.style.display='none'">
+    </div>
+
+    <!-- 3D LIGHTBOX (Supports Image and Video) -->
+    <div class="lightbox" id="lightbox">
+        <div class="lightbox-close interactive">Fechar [X]</div>
+        <div class="lightbox-content" id="lightboxContent">
+            <img src="" alt="Expanded" id="lightboxImg">
+            <video id="lightboxVid" controls playsinline></video>
+        </div>
+    </div>
+
+    <div class="navbar-container">
+        <nav class="navbar" id="navbar">
+            <div class="nav-logo-box interactive-toggle" id="navToggle">
+                <img src="logo.png" alt="Logo">
+            </div>
+            <div class="nav-links">
+                <a href="index.html" class="interactive page-link">Início</a>
+                <a href="about.html" class="interactive page-link">Sobre Nós</a>
+                <a href="services.html" class="interactive page-link">Serviços</a>
+            </div>
+        </nav>
+    </div>
+
+    <header class="portfolio-header">
+        <h1 class="gsap-header">O Nosso Arquivo</h1>
+        <p class="gsap-header">Explore as memórias que transformámos em obras-primas cinematográficas.</p>
+    </header>
+
+    <main class="portfolio-container">
+        
+        <h2 class="section-title gsap-scroll">Pôsteres de Cinema</h2>
+        <div class="posters-grid">
+            <div class="port-card poster-card interactive gsap-scroll">
+                <img src="11.png" class="port-media">
+            </div>
+            <div class="port-card poster-card interactive gsap-scroll">
+                <img src="22.png" class="port-media">
+            </div>
+            <div class="port-card poster-card interactive gsap-scroll">
+                <img src="33.png" class="port-media">
+            </div>
+            <div class="port-card poster-card interactive gsap-scroll">
+                <img src="44.png" class="port-media">
+            </div>
+        </div>
+
+        <h2 class="section-title gsap-scroll">Teasers & Trailers</h2>
+        <div class="videos-grid">
+            <!-- VIDEO CARD 1 -->
+            <div class="port-card video-card interactive gsap-scroll">
+                <div class="play-btn"></div>
+                <!-- Path to your video file below -->
+                <video class="port-media" autoplay muted loop playsinline>
+                    <source src="TEASREmp4.mp4" type="video/mp4">
+                </video>
+                <div class="port-overlay">
+                    <div class="port-title">Festival Horizonte 2024</div>
+                    <div class="port-cat">Teaser Oficial</div>
+                </div>
+            </div>
+
+            <!-- VIDEO CARD 2 -->
+            <div class="port-card video-card interactive gsap-scroll">
+                <div class="play-btn"></div>
+                <video class="port-media" autoplay muted loop playsinline>
+                    <source src="FINAL.mp4" type="video/mp4">
+                </video>
+                <div class="port-overlay">
+                    <div class="port-title">Adrenalina Pura</div>
+                    <div class="port-cat">Documentário Desportivo</div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        gsap.registerPlugin(ScrollTrigger);
+
+        window.addEventListener('load', () => {
+            const tl = gsap.timeline();
+            tl.to('.wipe-black', { top: "-100%", duration: 0.8, ease: "power4.inOut" })
+              .to('.wipe-red', { top: "-100%", duration: 0.8, ease: "power4.inOut" }, "-=0.6")
+              .to('.navbar-container', { opacity: 1, y: 0, duration: 1, ease: "power3.out" }, "-=0.4")
+              .fromTo('.gsap-header', { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, stagger: 0.2, ease: "power3.out" }, "-=0.5");
+        });
+
+        const pageLinks = document.querySelectorAll('.page-link');
+        pageLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                if(this.getAttribute('href') === '#') return;
+                e.preventDefault(); 
+                const targetUrl = this.getAttribute('href');
+                gsap.set('.wipe-layer', { top: "100%" });
+                const exitTl = gsap.timeline();
+                exitTl.to('.wipe-red', { top: "0%", duration: 0.6, ease: "power4.inOut" })
+                      .to('.wipe-black', { top: "0%", duration: 0.6, ease: "power4.inOut", onComplete: () => { window.location.href = targetUrl; } }, "-=0.4");
+            });
+        });
+
+        gsap.utils.toArray('.gsap-scroll').forEach(element => {
+            gsap.to(element, { y: 0, opacity: 1, duration: 0.8, ease: "power3.out",
+                scrollTrigger: { trigger: element, start: "top 85%", toggleActions: "play none none reverse" }
+            });
+        });
+
+        /* --- UPDATED LIGHTBOX LOGIC --- */
+        const lightbox = document.getElementById('lightbox');
+        const lbImg = document.getElementById('lightboxImg');
+        const lbVid = document.getElementById('lightboxVid');
+        const lbContent = document.getElementById('lightboxContent');
+        const cards = document.querySelectorAll('.port-card');
+
+        cards.forEach(card => {
+            card.addEventListener('click', () => {
+                const img = card.querySelector('img');
+                const video = card.querySelector('video');
+
+                // Hide both initially
+                lbImg.style.display = "none";
+                lbVid.style.display = "none";
+
+                if (img) {
+                    lbImg.src = img.src;
+                    lbImg.style.display = "block";
+                } else if (video) {
+                    const source = video.querySelector('source').src;
+                    lbVid.src = source;
+                    lbVid.style.display = "block";
+                    lbVid.play(); // Play in lightbox with sound
+                }
+                
+                lightbox.classList.add('active');
+                gsap.to(lightbox, { opacity: 1, duration: 0.4 });
+                gsap.fromTo(lbContent, 
+                    { scale: 0.5, rotationY: -40, opacity: 0 },
+                    { scale: 1, rotationY: 0, opacity: 1, duration: 1, ease: "expo.out" }
+                );
+            });
+        });
+
+        lightbox.addEventListener('click', (e) => {
+            if(e.target === lightbox || e.target.classList.contains('lightbox-close')) {
+                lbVid.pause(); // Stop video when closing
+                gsap.to(lbContent, { scale: 0.8, opacity: 0, duration: 0.4 });
+                gsap.to(lightbox, { opacity: 0, duration: 0.4, delay: 0.1, onComplete: () => {
+                    lightbox.classList.remove('active');
+                }});
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if(lightbox.classList.contains('active')) {
+                const xAxis = (window.innerWidth / 2 - e.pageX) / 40; 
+                const yAxis = (window.innerHeight / 2 - e.pageY) / 40;
+                gsap.to(lbContent, { rotationY: -xAxis, rotationX: yAxis, ease: "power1.out", duration: 0.5 });
+            }
+        });
+
+        /* --- CURSOR & NAV LOGIC --- */
+        const navToggle = document.getElementById('navToggle');
+        const navbar = document.getElementById('navbar');
+        navToggle.addEventListener('click', () => navbar.classList.toggle('is-open'));
+        const cursorWrapper = document.getElementById('customCursor');
+        document.addEventListener('mousemove', (e) => { cursorWrapper.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`; });
+        const interactives = document.querySelectorAll('.interactive, .interactive-toggle');
+        interactives.forEach(el => {
+            el.addEventListener('mouseenter', () => cursorWrapper.classList.add('hovering'));
+            el.addEventListener('mouseleave', () => cursorWrapper.classList.remove('hovering'));
+        });
+
+        /* --- PARTICLES --- */
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        let particlesArray = [];
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; initParticles(); });
+        const mouse = { x: null, y: null, radius: 120 };
+        window.addEventListener('mousemove', (event) => { mouse.x = event.x; mouse.y = event.y; });
+
+        class Particle {
+            constructor(x, y, directionX, directionY, size, color) {
+                this.x = x; this.y = y; this.directionX = directionX; this.directionY = directionY;
+                this.size = size; this.color = color; this.baseX = this.x; this.baseY = this.y;
+                this.density = (Math.random() * 20) + 1;
+            }
+            draw() {
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
+                ctx.fillStyle = this.color; ctx.fill();
+            }
+            update() {
+                let dx = mouse.x - this.x; let dy = mouse.y - this.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < mouse.radius) {
+                    this.x -= (dx / distance) * ((mouse.radius - distance) / mouse.radius) * this.density;
+                    this.y -= (dy / distance) * ((mouse.radius - distance) / mouse.radius) * this.density;
+                } else {
+                    if (this.x !== this.baseX) this.x -= (this.x - this.baseX) / 20;
+                    if (this.y !== this.baseY) this.y -= (this.y - this.baseY) / 20;
+                }
+                this.baseX += this.directionX; this.baseY += this.directionY;
+                if (this.baseX < 0 || this.baseX > canvas.width) this.directionX = -this.directionX;
+                if (this.baseY < 0 || this.baseY > canvas.height) this.directionY = -this.directionY;
+                this.draw();
+            }
+        }
+        function initParticles() {
+            particlesArray = []; let num = (canvas.width * canvas.height) / 9000;
+            for (let i = 0; i < num; i++) {
+                let size = (Math.random() * 2) + 0.5;
+                let x = (Math.random() * (innerWidth - size * 4)) + size * 2;
+                let y = (Math.random() * (innerHeight - size * 4)) + size * 2;
+                let color = Math.random() > 0.5 ? 'rgba(210, 32, 38, 0.4)' : 'rgba(47, 47, 47, 0.3)';
+                particlesArray.push(new Particle(x, y, (Math.random() * 0.5) - 0.25, (Math.random() * 0.5) - 0.25, size, color));
+            }
+        }
+        function animate() { requestAnimationFrame(animate); ctx.clearRect(0,0,innerWidth,innerHeight); for (let i=0; i<particlesArray.length; i++) particlesArray[i].update(); }
+        initParticles(); animate();
+    </script>
+</body>
+</html>

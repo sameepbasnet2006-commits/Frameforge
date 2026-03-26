@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FrameForge | Turning Memories Into Movies</title>
+    
+    <!-- Import Montserrat & Lato -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
+    
+    <!-- Import GSAP for Premium Animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+    <style>
+        /* --- BRAND VARIABLES --- */
+        :root {
+            --bg-offwhite: #d0cfcf;
+            --brand-red: #d22026;
+            --brand-black: #2f2f2f;
+        }
+        
+
+        /* --- BASE STYLES --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Hide default mouse for custom cursor */
+        @media (pointer: fine) {
+            * { cursor: none !important; }
+        }
+        /* --- PARTICLE CANVAS --- */
+        #particleCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 2; /* Sits behind your main content (z-index 10) */
+            pointer-events: none; /* Let clicks pass through */
+        }
+
+        body {
+            background-color: var(--bg-offwhite);
+            color: var(--brand-black);
+            font-family: 'Lato', sans-serif;
+            overflow-x: hidden;
+            position: relative;
+            background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.05) 100%);
+        }
+
+        h1, h2, h3 {
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        /* --- ANIMATED BACKGROUND STRIPES --- */
+        .bg-stripes-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1; /* Sits behind the main content */
+            overflow: hidden;
+            pointer-events: none; /* Allows you to click right through them */
+        }
+
+        .bg-stripe {
+            position: absolute;
+            width: 300vw; /* Extremely long so they never cut off */
+            left: -100vw; /* Centered starting point */
+            transform-origin: center;
+        }
+
+        /* The Red Stripe */
+        .bg-stripe.red-stripe {
+            background-color: var(--brand-red);
+            height: 60px;
+            top: 40%; 
+            opacity: 0.15; /* Transparent enough to read text over it */
+            animation: stripeMoveRed 18s linear infinite;
+        }
+
+        /* The Black Stripe */
+        .bg-stripe.black-stripe {
+            background-color: var(--brand-black);
+            height: 25px;
+            top: 45%; 
+            opacity: 0.08;
+            animation: stripeMoveBlack 25s linear infinite; /* Slower for parallax effect */
+        }
+
+        @keyframes stripeMoveRed {
+            0% { transform: rotate(50deg) translateY(-20vh) translateX(100vw); }
+            100% { transform: rotate(50deg) translateY(-20vh) translateX(-100vw); }
+        }
+        
+        @keyframes stripeMoveBlack {
+            0% { transform: rotate(50deg) translateY(-30vh) translateX(100vw); }
+            100% { transform: rotate(50deg) translateY(-30vh) translateX(-100vw); }
+        }
+
+        /* --- CINEMATIC INTRO SCREENS --- */
+        .intro-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background-color: var(--bg-offwhite);
+            z-index: 3000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .intro-logo {
+            width: 280px; 
+            height: auto;
+        }
+
+        .wipe-layer {
+            position: fixed;
+            top: 100%; 
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: 3001;
+        }
+        .wipe-black { background-color: var(--brand-black); }
+        .wipe-red { background-color: var(--brand-red); z-index: 3002; }
+
+        /* --- 2-STATE CUSTOM CURSOR --- */
+        .cursor-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 9999;
+            display: none;
+        }
+
+        @media (pointer: fine) { .cursor-wrapper { display: block; } }
+
+        .cursor-state {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 45px; 
+            height: auto;
+            transform: translate(-50%, -50%);
+            transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .cursor-idle { opacity: 1; }
+        .cursor-hover { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+
+        .cursor-wrapper.hovering .cursor-idle { opacity: 0; }
+        .cursor-wrapper.hovering .cursor-hover { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+
+        /* --- INTERACTIVE TOGGLE NAVIGATION --- */
+        .navbar-container {
+            position: fixed;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            opacity: 0; 
+        }
+
+        .navbar {
+            background-color: var(--brand-black);
+            padding: 8px;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            max-width: 66px; 
+            overflow: hidden;
+            transition: max-width 0.6s cubic-bezier(0.8, 0, 0.2, 1);
+        }
+
+        .navbar.is-open {
+            max-width: 500px;
+        }
+
+        .nav-logo-box {
+            background-color: var(--bg-offwhite);
+            height: 50px;
+            width: 50px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-shrink: 0;
+            padding: 8px; 
+            transition: transform 0.5s ease, background-color 0.3s;
+        }
+
+        .nav-logo-box:hover {
+            background-color: white;
+        }
+
+        .navbar.is-open .nav-logo-box {
+            transform: rotate(360deg);
+        }
+
+        .nav-logo-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; 
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 5px;
+            padding-left: 15px;
+            padding-right: 10px;
+            opacity: 0;
+            white-space: nowrap;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .navbar.is-open .nav-links {
+            opacity: 1;
+            pointer-events: auto;
+            transition: opacity 0.4s ease 0.3s;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--brand-black);
+            background-color: var(--bg-offwhite);
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            transition: all 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            background-color: var(--brand-red);
+            color: var(--bg-offwhite);
+        }
+
+        /* --- HERO SECTION --- */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 8%;
+            position: relative;
+            z-index: 10; /* Keeps content above the background stripes */
+        }
+
+        .hero-content { width: 50%; position: relative; z-index: 10; }
+
+        .hero-content h1 {
+            font-size: clamp(3.5rem, 7vw, 7rem);
+            font-weight: 900;
+            line-height: 0.85; 
+            letter-spacing: -0.04em;
+            text-transform: uppercase;
+            color: var(--brand-black);
+            margin-bottom: 2rem;
+            transform-origin: left;
+        }
+
+        .line-wrapper {
+            overflow: hidden; 
+            display: block;
+            transform: scaleY(1.1); 
+        }
+
+        .line {
+            display: block;
+            transform: translateY(110%);
+        }
+
+        .hero-description {
+            font-size: 1.15rem;
+            line-height: 1.6;
+            font-weight: 700;
+            max-width: 550px;
+            margin-bottom: 3rem;
+            color: var(--brand-black);
+            opacity: 0; 
+            transform: translateY(20px);
+        }
+
+        .cta-group {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            opacity: 0; 
+            transform: translateY(20px);
+        }
+
+        .btn-primary {
+            background-color: var(--brand-red);
+            color: var(--bg-offwhite);
+            border: 2px solid var(--brand-black); 
+            padding: 15px 35px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-family: 'Lato', sans-serif;
+            font-weight: 900;
+            font-size: 1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 4px 4px 0px var(--brand-black); 
+        }
+
+        .btn-primary:hover {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px var(--brand-black);
+        }
+
+        .btn-secondary {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: transparent;
+            color: var(--brand-black);
+            text-decoration: none;
+            font-weight: 900;
+            font-size: 1rem;
+        }
+
+        .arrow-icon {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 35px;
+            height: 35px;
+            border: 1px solid var(--brand-black);
+            border-radius: 8px;
+            font-size: 1.2rem;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .btn-secondary:hover .arrow-icon {
+            background-color: var(--brand-black);
+            color: var(--bg-offwhite);
+        }
+
+        .hero-visuals {
+            width: 50%;
+            height: 600px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0; 
+        }
+
+        .accent-spark {
+            position: absolute;
+            left: -20px;
+            top: 20%;
+            width: 100px;
+            height: auto;
+            z-index: 5;
+            fill: var(--brand-red);
+            transform: rotate(-15deg);
+            animation: pulse 4s infinite alternate;
+        }
+
+        .img-card {
+            position: absolute;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+            border: 6px solid var(--bg-offwhite);
+        }
+
+        .img-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: grayscale(20%) contrast(120%);
+        }
+
+        .img-back {
+            width: 450px;
+            height: 450px;
+            top: 50px;
+            right: 0;
+            transform: rotate(-8deg);
+            opacity: 0.9;
+            z-index: 1;
+            animation: float-back 6s ease-in-out infinite;
+        }
+
+        .img-front {
+            width: 550px;
+            height: 380px;
+            bottom: 20px;
+            left: 20px;
+            transform: rotate(4deg);
+            z-index: 2;
+            animation: float-front 8s ease-in-out infinite;
+        }
+
+        @keyframes float-front {
+            0%, 100% { transform: rotate(4deg) translateY(0); }
+            50% { transform: rotate(5deg) translateY(-15px); }
+        }
+
+        @keyframes float-back {
+            0%, 100% { transform: rotate(-8deg) translateY(0); }
+            50% { transform: rotate(-6deg) translateY(10px); }
+        }
+
+        @keyframes pulse {
+            0% { transform: rotate(-15deg) scale(1); }
+            100% { transform: rotate(-10deg) scale(1.05); }
+        }
+
+        @media (max-width: 1024px) {
+            .hero { flex-direction: column; justify-content: center; text-align: center; padding-top: 150px; }
+            .hero-content, .hero-visuals { width: 100%; }
+            .hero-content { display: flex; flex-direction: column; align-items: center; }
+            .line-wrapper { transform: scaleY(1); }
+            .hero-visuals { margin-top: 50px; height: 400px; }
+            .img-front { width: 90%; left: 5%; bottom: 0; }
+            .img-back { width: 80%; right: 10%; top: 0; }
+            .accent-spark { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ANIMATED BACKGROUND STRIPES -->
+    <div class="bg-stripes-container">
+        <div class="bg-stripe red-stripe"></div>
+        <div class="bg-stripe black-stripe"></div>
+    </div>
+    <div class="bg-stripes-container">
+        <div class="bg-stripe red-stripe"></div>
+        <div class="bg-stripe black-stripe"></div>
+    </div>
+
+    <canvas id="particleCanvas"></canvas>
+
+    <!-- CINEMATIC INTRO SCREENS -->
+    <div class="intro-container">
+        <img src="logo.png" alt="FrameForge" class="intro-logo">
+    </div>
+    
+    <div class="wipe-layer wipe-black"></div>
+    <div class="wipe-layer wipe-red"></div>
+
+    <!-- CUSTOM IMAGE CURSOR -->
+    <div class="cursor-wrapper" id="customCursor">
+        <img src="b.png" alt="Idle Cursor" class="cursor-state cursor-idle" onerror="this.style.display='none'"> 
+        <img src="f.png" alt="Hover Cursor" class="cursor-state cursor-hover" onerror="this.style.display='none'">
+    </div>
+
+    <!-- TOGGLE NAVIGATION -->
+    <div class="navbar-container">
+        <nav class="navbar" id="navbar">
+            <div class="nav-logo-box interactive-toggle" id="navToggle">
+                <img src="logo.png" alt="Logo">
+            </div>
+            <div class="nav-links">
+                <a href="about.html" class="interactive page-link">Sobre Nós</a>
+                <a href="service.html" class="interactive page-link">Serviços</a>
+                <a href="port.html" class="interactive page-link">Portfólio</a>
+               
+            </div>
+        </nav>
+    </div>
+
+    <!-- HERO SECTION -->
+    <main class="hero">
+        <div class="hero-content">
+            
+            <h1>
+                <span class="line-wrapper"><span class="line">Turning</span></span>
+                <span class="line-wrapper"><span class="line">Memories</span></span>
+                <span class="line-wrapper"><span class="line">Into Movies.</span></span>
+            </h1>
+
+            <p class="hero-description">Um estúdio criativo especializado na criação de pôsteres cinematográficos e na produção de teasers de vídeo ao estilo de trailers de filmes. Damos vida a eventos, concertos, desporto e campanhas, transformando momentos reais em experiências cinematográficas inesquecíveis.</p>
+            
+            <div class="cta-group">
+                <a href="service.html" class="btn-primary interactive">Falar Connosco</a>
+                <a href="port.html" class="btn-secondary interactive">
+                    Ver Portfólio 
+                    <span class="arrow-icon">↗</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="hero-visuals">
+            <svg class="accent-spark" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" />
+            </svg>
+            <div class="img-card img-back">
+                <img src="33.png" alt="Back Image">
+            </div>
+            <div class="img-card img-front">
+                <img src="11.png" alt="Front Image">
+            </div>
+        </div>
+    </main>
+
+    <script>
+        /* --- MENU TOGGLE LOGIC --- */
+        const navToggle = document.getElementById('navToggle');
+        const navbar = document.getElementById('navbar');
+
+        navToggle.addEventListener('click', () => {
+            navbar.classList.toggle('is-open');
+        });
+
+        /* --- CUSTOM CURSOR LOGIC --- */
+        const cursorWrapper = document.getElementById('customCursor');
+        let mouseX = 0; let mouseY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            cursorWrapper.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0)`;
+        });
+
+        const interactives = document.querySelectorAll('.interactive, .interactive-toggle');
+        interactives.forEach(el => {
+            el.addEventListener('mouseenter', () => cursorWrapper.classList.add('hovering'));
+            el.addEventListener('mouseleave', () => cursorWrapper.classList.remove('hovering'));
+        });
+
+        /* --- DYNAMIC CINEMATIC GSAP INTRO --- */
+        const tl = gsap.timeline();
+
+        tl.fromTo('.intro-logo', 
+            { scale: 2.5, opacity: 0, filter: 'blur(20px)' },
+            { scale: 1, opacity: 1, filter: 'blur(0px)', duration: 1.5, ease: "expo.out" }
+        )
+        .to('.intro-logo', { scale: 1.05, duration: 0.8, ease: "sine.inOut" })
+        .to('.intro-logo', { scale: 0.9, duration: 0.3, ease: "power2.in" })
+        .to('.intro-logo', { scale: 15, opacity: 0, duration: 0.6, ease: "power4.in" })
+        
+        .to('.wipe-black', { top: 0, duration: 0.5, ease: "power4.inOut" }, "-=0.4")
+        .to('.wipe-red', { top: 0, duration: 0.5, ease: "power4.inOut" }, "-=0.35")
+        
+        .set('.intro-container', { display: "none" })
+        
+        .to('.wipe-black', { top: "-100%", duration: 0.6, ease: "power4.inOut" })
+        .to('.wipe-red', { top: "-100%", duration: 0.6, ease: "power4.inOut" }, "-=0.4")
+        
+        .to('.navbar-container', { opacity: 1, y: 0, duration: 1, ease: "power3.out" }, "-=0.2")
+        .to('.line', { y: "0%", duration: 1, stagger: 0.15, ease: "power4.out" }, "-=0.8")
+        .to('.hero-description', { opacity: 0.85, y: 0, duration: 1, ease: "power3.out" }, "-=0.6")
+        .to('.cta-group', { opacity: 1, y: 0, duration: 1, ease: "power3.out" }, "-=0.8")
+        .to('.hero-visuals', { opacity: 1, x: 0, duration: 1.5, ease: "power3.out" }, "-=1.2");
+        /* --- INTERACTIVE PARTICLE SYSTEM --- */
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        let particlesArray = [];
+
+        // Set canvas to full window size
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initParticles();
+        });
+
+        // Use the mouseX and mouseY you already defined for the custom cursor
+        const mouse = {
+            x: null,
+            y: null,
+            radius: 120 // How far the mouse repels particles
+        };
+
+        window.addEventListener('mousemove', (event) => {
+            mouse.x = event.x;
+            mouse.y = event.y;
+        });
+
+        class Particle {
+            constructor(x, y, directionX, directionY, size, color) {
+                this.x = x;
+                this.y = y;
+                this.directionX = directionX;
+                this.directionY = directionY;
+                this.size = size;
+                this.color = color;
+                this.baseX = this.x;
+                this.baseY = this.y;
+                this.density = (Math.random() * 20) + 1;
+            }
+
+            // Draw the particle
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+
+            // Move particle and check mouse collision
+            update() {
+                // Collision detection with mouse
+                let dx = mouse.x - this.x;
+                let dy = mouse.y - this.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // If mouse is close enough, move the particle away
+                if (distance < mouse.radius) {
+                    const forceDirectionX = dx / distance;
+                    const forceDirectionY = dy / distance;
+                    const maxDistance = mouse.radius;
+                    const force = (maxDistance - distance) / maxDistance;
+                    const directionX = forceDirectionX * force * this.density;
+                    const directionY = forceDirectionY * force * this.density;
+
+                    this.x -= directionX;
+                    this.y -= directionY;
+                } else {
+                    // Return to original position smoothly if mouse is far away
+                    if (this.x !== this.baseX) {
+                        let dx = this.x - this.baseX;
+                        this.x -= dx / 20;
+                    }
+                    if (this.y !== this.baseY) {
+                        let dy = this.y - this.baseY;
+                        this.y -= dy / 20;
+                    }
+                }
+
+                // Natural drifting movement
+                this.baseX += this.directionX;
+                this.baseY += this.directionY;
+
+                // Bounce off edges
+                if (this.baseX < 0 || this.baseX > canvas.width) this.directionX = -this.directionX;
+                if (this.baseY < 0 || this.baseY > canvas.height) this.directionY = -this.directionY;
+
+                this.draw();
+            }
+        }
+
+        function initParticles() {
+            particlesArray = [];
+            let numberOfParticles = (canvas.width * canvas.height) / 9000; // Adjust density here
+            
+            for (let i = 0; i < numberOfParticles; i++) {
+                let size = (Math.random() * 2) + 0.5;
+                let x = (Math.random() * ((innerWidth - size * 2) - (size * 2)) + size * 2);
+                let y = (Math.random() * ((innerHeight - size * 2) - (size * 2)) + size * 2);
+                let directionX = (Math.random() * 0.5) - 0.25;
+                let directionY = (Math.random() * 0.5) - 0.25;
+                
+                // Mix of your brand red and black, both slightly transparent
+                let color = Math.random() > 0.5 ? 'rgba(210, 32, 38, 0.4)' : 'rgba(47, 47, 47, 0.3)';
+                
+                particlesArray.push(new Particle(x, y, directionX, directionY, size, color));
+            }
+        }
+
+        // Optional: Draw lines connecting particles that are close together
+        function connectParticles() {
+            let opacityValue = 1;
+            for (let a = 0; a < particlesArray.length; a++) {
+                for (let b = a; b < particlesArray.length; b++) {
+                    let distance = ((particlesArray[a].x - particlesArray[b].x) * (particlesArray[a].x - particlesArray[b].x))
+                                 + ((particlesArray[a].y - particlesArray[b].y) * (particlesArray[a].y - particlesArray[b].y));
+                    
+                    if (distance < (canvas.width / 10) * (canvas.height / 10)) {
+                        opacityValue = 1 - (distance / 10000);
+                        ctx.strokeStyle = `rgba(47, 47, 47, ${opacityValue * 0.05})`; // Very faint lines
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+                        ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animateParticles() {
+            requestAnimationFrame(animateParticles);
+            ctx.clearRect(0, 0, innerWidth, innerHeight);
+
+            for (let i = 0; i < particlesArray.length; i++) {
+                particlesArray[i].update();
+            }
+            connectParticles();
+        }
+
+        initParticles();
+        animateParticles();
+        /* --- TEXT PARALLAX EFFECT --- */
+        const heroContent = document.querySelector('.hero-content');
+        
+        document.addEventListener('mousemove', (e) => {
+            // Calculate mouse position relative to the center of the screen
+            const xPos = (window.innerWidth / 2 - e.clientX) * 0.03; 
+            const yPos = (window.innerHeight / 2 - e.clientY) * 0.03;
+
+            // Smoothly move the hero content in the opposite direction of the mouse
+            gsap.to(heroContent, {
+                x: xPos,
+                y: yPos,
+                duration: 1.5,
+                ease: "power2.out"
+            });
+        });
+        /* --- MAGNETIC BUTTONS --- */
+        const buttons = document.querySelectorAll('.btn-primary, .btn-secondary');
+
+        buttons.forEach(btn => {
+            btn.addEventListener('mousemove', (e) => {
+                // Get button's position and dimensions
+                const rect = btn.getBoundingClientRect();
+                
+                // Calculate distance from center of the button
+                const x = e.clientX - rect.left - rect.width / 2;
+                const y = e.clientY - rect.top - rect.height / 2;
+
+                // Move the button slightly towards the cursor (0.3 is the pull strength)
+                gsap.to(btn, { 
+                    x: x * 0.3, 
+                    y: y * 0.3, 
+                    duration: 0.3, 
+                    ease: 'power2.out' 
+                });
+            });
+
+            btn.addEventListener('mouseleave', () => {
+                // Snap back to original position with an elastic bounce
+                gsap.to(btn, { 
+                    x: 0, 
+                    y: 0, 
+                    duration: 0.7, 
+                    ease: 'elastic.out(1, 0.3)' 
+                });
+            });
+        });
+        /* --- PAGE OUTRO TRANSITION --- */
+const pageLinks = document.querySelectorAll('.page-link');
+
+pageLinks.forEach(link => {
+    link.addEventListener('click', function(e) {
+        const targetUrl = this.getAttribute('href');
+        if(targetUrl === '#') return; // Ignore empty links
+        
+        e.preventDefault(); // Stop immediate jump
+
+        // Reset wipe layers to the bottom
+        gsap.set('.wipe-layer', { top: "100%", display: "block" });
+
+        // Animate wipes up, then change page
+        const exitTl = gsap.timeline();
+        exitTl.to('.wipe-red', { top: "0%", duration: 0.6, ease: "power4.inOut" })
+              .to('.wipe-black', { top: "0%", duration: 0.6, ease: "power4.inOut", 
+                  onComplete: () => {
+                      window.location.href = targetUrl;
+                  } 
+              }, "-=0.4");
+    });
+});
+    </script>
+</body>
+</html>
